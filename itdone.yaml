@@ -1,0 +1,15 @@
+version: "1"
+services:
+  frontend:
+    path: ./frontend
+    port: 3000
+
+  backend:
+    path: ./backend
+    port: 8080
+
+addons:
+  db:
+    type: postgres
+    attachTo:
+      - backend
