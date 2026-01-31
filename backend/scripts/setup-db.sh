@@ -1,16 +1,18 @@
 #!/bin/bash
 
-# Detect database type from DATABASE_URL and use appropriate schema
-if [[ "$DATABASE_URL" == postgres* ]] || [[ "$DATABASE_URL" == postgresql* ]]; then
+# Use PostgreSQL for production, SQLite for local development
+# Detection: NODE_ENV=production OR DATABASE_URL starts with postgres
+
+if [[ "$NODE_ENV" == "production" ]] || [[ "$DATABASE_URL" == postgres* ]] || [[ "$DATABASE_URL" == postgresql* ]]; then
   echo "Using PostgreSQL schema..."
   cp prisma/schema.postgres.prisma prisma/schema.prisma
+
+  # Set dummy URL for prisma generate if not available yet (addon connects later)
+  export DATABASE_URL="${DATABASE_URL:-postgresql://dummy:dummy@localhost:5432/dummy}"
 else
   echo "Using SQLite schema..."
-  # schema.prisma already defaults to SQLite
+  export DATABASE_URL="${DATABASE_URL:-file:./dev.db}"
 fi
 
 # Generate Prisma client
 npx prisma generate
-
-# Push schema to database
-npx prisma db push --skip-generate

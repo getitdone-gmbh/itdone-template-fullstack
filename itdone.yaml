@@ -7,6 +7,8 @@ services:
   backend:
     path: ./backend
     port: 8080
+    env:
+      NODE_ENV: production
 
 addons:
   db:

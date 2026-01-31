@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { getMultipleQuotes } from '../services/stockService.js';
 
 const router = Router();
@@ -70,11 +70,25 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
+// Type for portfolio with positions
+type PortfolioWithPositions = Prisma.PortfolioGetPayload<{
+  include: {
+    positions: {
+      include: {
+        transactions: true
+      }
+    },
+    user: {
+      select: { id: true, name: true, email: true }
+    }
+  }
+}>;
+
 // GET /api/portfolios/:id - Get portfolio with positions and current values
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma(req);
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const portfolio = await prisma.portfolio.findUnique({
       where: { id },
@@ -90,18 +104,18 @@ router.get('/:id', async (req: Request, res: Response) => {
           select: { id: true, name: true, email: true }
         }
       }
-    });
+    }) as PortfolioWithPositions | null;
 
     if (!portfolio) {
       return res.status(404).json({ error: 'Portfolio not found' });
     }
 
     // Get current quotes for all positions
-    const symbols = portfolio.positions.map(p => p.symbol);
+    const symbols = portfolio.positions.map((p) => p.symbol);
     const quotes = await getMultipleQuotes(symbols);
 
     // Calculate values for each position
-    const positionsWithValues = portfolio.positions.map(position => {
+    const positionsWithValues = portfolio.positions.map((position) => {
       const quote = quotes.get(position.symbol.toUpperCase());
       const currentPrice = quote?.price || position.avgPrice;
       const currentValue = position.shares * currentPrice;
@@ -121,8 +135,8 @@ router.get('/:id', async (req: Request, res: Response) => {
     });
 
     // Calculate portfolio totals
-    const totalValue = positionsWithValues.reduce((sum, p) => sum + p.currentValue, 0);
-    const totalCostBasis = positionsWithValues.reduce((sum, p) => sum + p.costBasis, 0);
+    const totalValue = positionsWithValues.reduce((sum: number, p) => sum + p.currentValue, 0);
+    const totalCostBasis = positionsWithValues.reduce((sum: number, p) => sum + p.costBasis, 0);
     const totalGainLoss = totalValue - totalCostBasis;
     const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
 
@@ -147,7 +161,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.post('/:id/buy', async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma(req);
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { symbol, shares, price, date } = req.body;
 
     if (!symbol || !shares || !price) {
@@ -165,11 +179,12 @@ router.post('/:id/buy', async (req: Request, res: Response) => {
     }
 
     // Find or create position
+    const symbolUpper: string = symbol.toUpperCase();
     let position = await prisma.position.findUnique({
       where: {
         portfolioId_symbol: {
           portfolioId: id,
-          symbol: symbol.toUpperCase()
+          symbol: symbolUpper
         }
       }
     });
@@ -191,7 +206,7 @@ router.post('/:id/buy', async (req: Request, res: Response) => {
       position = await prisma.position.create({
         data: {
           portfolioId: id,
-          symbol: symbol.toUpperCase(),
+          symbol: symbolUpper,
           shares,
           avgPrice: price
         }
@@ -223,7 +238,7 @@ router.post('/:id/buy', async (req: Request, res: Response) => {
 router.post('/:id/sell', async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma(req);
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { symbol, shares, price, date } = req.body;
 
     if (!symbol || !shares || !price) {
@@ -235,11 +250,12 @@ router.post('/:id/sell', async (req: Request, res: Response) => {
     }
 
     // Find position
+    const symbolUpper: string = symbol.toUpperCase();
     const position = await prisma.position.findUnique({
       where: {
         portfolioId_symbol: {
           portfolioId: id,
-          symbol: symbol.toUpperCase()
+          symbol: symbolUpper
         }
       }
     });
@@ -293,7 +309,7 @@ router.post('/:id/sell', async (req: Request, res: Response) => {
 router.get('/:id/transactions', async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma(req);
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const transactions = await prisma.transaction.findMany({
       where: {
@@ -320,7 +336,7 @@ router.get('/:id/transactions', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma(req);
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     await prisma.portfolio.delete({ where: { id } });
     res.json({ message: 'Portfolio deleted' });

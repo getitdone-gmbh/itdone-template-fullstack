@@ -41,17 +41,12 @@ model Position {
 }
 
 model Transaction {
-  id         String          @id @default(cuid())
+  id         String   @id @default(cuid())
   positionId String
-  type       TransactionType
+  type       String   // "BUY" or "SELL"
   shares     Float
   price      Float
-  date       DateTime        @default(now())
-  position   Position        @relation(fields: [positionId], references: [id], onDelete: Cascade)
-  createdAt  DateTime        @default(now())
-}
-
-enum TransactionType {
-  BUY
-  SELL
+  date       DateTime @default(now())
+  position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
 }

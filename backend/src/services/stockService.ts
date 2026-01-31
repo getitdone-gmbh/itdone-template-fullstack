@@ -15,6 +15,22 @@ export interface StockQuote {
   timestamp: number;
 }
 
+interface YahooFinanceResponse {
+  chart?: {
+    result?: Array<{
+      meta: {
+        symbol: string;
+        regularMarketPrice: number;
+        previousClose: number;
+        regularMarketOpen?: number;
+        regularMarketDayHigh?: number;
+        regularMarketDayLow?: number;
+        regularMarketVolume?: number;
+      };
+    }>;
+  };
+}
+
 // Using Yahoo Finance v8 API (no API key required)
 export async function getStockQuote(symbol: string): Promise<StockQuote | null> {
   const cacheKey = `quote:${symbol.toUpperCase()}`;
@@ -38,7 +54,7 @@ export async function getStockQuote(symbol: string): Promise<StockQuote | null> 
       return null;
     }
 
-    const data = await response.json();
+    const data = await response.json() as YahooFinanceResponse;
     const result = data.chart?.result?.[0];
 
     if (!result) {

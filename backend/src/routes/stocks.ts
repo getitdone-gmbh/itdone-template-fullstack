@@ -6,7 +6,7 @@ const router = Router();
 // GET /api/stocks/:symbol/quote - Get current stock quote
 router.get('/:symbol/quote', async (req: Request, res: Response) => {
   try {
-    const { symbol } = req.params;
+    const symbol = req.params.symbol as string;
 
     if (!symbol) {
       return res.status(400).json({ error: 'Symbol is required' });
