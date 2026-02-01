@@ -3,12 +3,14 @@ services:
   frontend:
     path: ./frontend
     port: 3000
-    env:
-      VITE_API_URL: ${backend.url}/api
+    public: true
+    env:                                                                                                                               
+      VITE_API_URL: ${backend.url}/api    
 
   backend:
     path: ./backend
     port: 8080
+    public: true
     env:
       NODE_ENV: production
 

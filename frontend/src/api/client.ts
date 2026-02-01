@@ -1,4 +1,21 @@
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+// API URL: Use environment variable, or derive from window location
+function getApiBase(): string {
+  // Build-time env var (Vite)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
+  // Runtime: Replace 'frontend' with 'backend' in hostname
+  if (typeof window !== 'undefined' && window.location.hostname.includes('frontend')) {
+    const backendHost = window.location.hostname.replace('frontend', 'backend');
+    return `${window.location.protocol}//${backendHost}/api`;
+  }
+
+  // Local development fallback
+  return '/api';
+}
+
+const API_BASE = getApiBase();
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
