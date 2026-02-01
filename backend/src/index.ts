@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import portfolioRoutes from './routes/portfolios.js';
 import stockRoutes from './routes/stocks.js';
@@ -8,16 +7,19 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 8080;
 
-// CORS configuration
-app.use(cors({
-  origin: true, // Allow all origins
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// CORS - manually set headers to ensure they're always present
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 
-// Handle preflight requests
-app.options('*', cors());
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  next();
+});
 
 app.use(express.json());
 
