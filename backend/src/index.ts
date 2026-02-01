@@ -35,7 +35,7 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.get('/api/health', (_req, res) => {
+app.get('/', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
