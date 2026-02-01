@@ -30,7 +30,11 @@ app.locals.prisma = prisma;
 app.use('/api/portfolios', portfolioRoutes);
 app.use('/api/stocks', stockRoutes);
 
-// Health check
+// Health check (for Nomad/Consul)
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
