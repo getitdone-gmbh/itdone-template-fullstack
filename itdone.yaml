@@ -19,3 +19,9 @@ addons:
     type: postgres
     attachTo:
       - backend
+  auth:                                                                                                                                
+    type: zitadel                                                                                                                      
+    oidcType: spa                                                                            
+    attachTo:                                                                                                                          
+      - frontend                                                                                                                       
+      - backend     
