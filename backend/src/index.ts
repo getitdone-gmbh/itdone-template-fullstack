@@ -8,7 +8,17 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 8080;
 
-app.use(cors());
+// CORS configuration
+app.use(cors({
+  origin: true, // Allow all origins
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Handle preflight requests
+app.options('*', cors());
+
 app.use(express.json());
 
 // Make prisma available to routes
