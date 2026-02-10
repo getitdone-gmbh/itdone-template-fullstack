@@ -1,7 +1,7 @@
 {
-  "name": "stock-portfolio-backend",
+  "name": "itdone-template-backend",
   "version": "1.0.0",
-  "description": "Stock Portfolio Management Backend",
+  "description": "ITdone Template Backend",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -14,12 +14,9 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
-    "cors": "^2.8.5",
-    "express": "^4.21.1",
-    "node-cache": "^5.1.2"
+    "express": "^4.21.1"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.9.0",
     "prisma": "^5.22.0",

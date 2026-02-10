@@ -1,119 +1,52 @@
-# Aktien Portfolio Verwaltung
+# ITdone Fullstack Template
 
-Eine Webanwendung zur Verwaltung von Aktienportfolios mit React Frontend und Node.js/Express Backend.
+Minimal CRUD template for deploying on ITdone Cloud. Uses React + Vite + Tailwind (frontend), Express + Prisma + PostgreSQL (backend), and Zitadel auth via `itdone.yaml`.
 
-## Features
-
-- **Portfolio-Verwaltung**: Erstellen und verwalten mehrerer Portfolios
-- **Aktien kaufen/verkaufen**: Mit automatischer Durchschnittspreisberechnung
-- **Live-Kurse**: Aktuelle Aktienkurse von Yahoo Finance (mit Caching)
-- **Dashboard**: Ubersicht uber Gesamtwert, Gewinn/Verlust und Verteilung
-- **Charts**: Visualisierung der Portfolio-Allokation und Performance
-- **Transaktionshistorie**: Alle Kauf- und Verkaufstransaktionen
-
-## Tech Stack
-
-### Frontend
-- React 18 mit Vite
-- TanStack Query (React Query) fur API-Calls
-- Tailwind CSS fur Styling
-- Recharts fur Diagramme
-- TypeScript
-
-### Backend
-- Node.js mit Express
-- Prisma ORM
-- PostgreSQL Datenbank
-- TypeScript
-
-## Projektstruktur
+## Structure
 
 ```
-stock-portfolio/
-├── itdone.yaml           # Deployment-Konfiguration
-├── frontend/             # React Frontend
+├── itdone.yaml              # ITdone Cloud deployment config (Postgres, Zitadel auth)
+├── frontend/                # React + Vite + Tailwind
 │   ├── src/
-│   │   ├── api/          # API Client
-│   │   ├── components/   # React Komponenten
-│   │   ├── App.tsx
-│   │   └── main.tsx
+│   │   ├── api/client.ts    # API client with Item interface
+│   │   ├── App.tsx          # Single-page items list
+│   │   └── main.tsx         # Entry point with React Query
 │   └── package.json
-├── backend/              # Express Backend
-│   ├── prisma/
-│   │   └── schema.prisma # Datenbank-Schema
+├── backend/                 # Express + Prisma
+│   ├── prisma/schema.prisma # Item model
 │   ├── src/
-│   │   ├── routes/       # API Routes
-│   │   ├── services/     # Business Logic
-│   │   └── index.ts
+│   │   ├── routes/items.ts  # CRUD routes (GET, POST, DELETE)
+│   │   └── index.ts         # Express server setup
 │   └── package.json
 └── README.md
 ```
 
-## Installation
+## Setup
 
-### Voraussetzungen
-- Node.js 18+
-- PostgreSQL Datenbank
-
-### Backend Setup
+### Backend
 
 ```bash
 cd backend
-
-# Dependencies installieren
 npm install
-
-# Umgebungsvariablen konfigurieren
-cp .env.example .env
-# DATABASE_URL in .env anpassen
-
-# Prisma Client generieren
+cp .env.example .env   # edit DATABASE_URL if needed
 npm run db:generate
-
-# Datenbank-Schema anwenden
 npm run db:push
-
-# Server starten (Port 8080)
-npm run dev
+npm run dev            # starts on port 8080
 ```
 
-### Frontend Setup
+### Frontend
 
 ```bash
 cd frontend
-
-# Dependencies installieren
 npm install
-
-# Development Server starten (Port 3000)
-npm run dev
+npm run dev            # starts on port 3000
 ```
 
-## API Endpoints
+## API
 
-| Methode | Endpoint | Beschreibung |
-|---------|----------|--------------|
-| GET | `/api/portfolios` | Alle Portfolios abrufen |
-| POST | `/api/portfolios` | Neues Portfolio erstellen |
-| GET | `/api/portfolios/:id` | Portfolio mit Positionen und aktuellen Werten |
-| POST | `/api/portfolios/:id/buy` | Aktie kaufen |
-| POST | `/api/portfolios/:id/sell` | Aktie verkaufen |
-| GET | `/api/portfolios/:id/transactions` | Transaktionshistorie |
-| DELETE | `/api/portfolios/:id` | Portfolio loschen |
-| GET | `/api/stocks/:symbol/quote` | Aktueller Aktienkurs |
-
-## Datenbank-Schema
-
-- **User**: Benutzer mit E-Mail und Name
-- **Portfolio**: Gehorrt einem User, hat einen Namen
-- **Position**: Aktienposition in einem Portfolio (Symbol, Anteile, Durchschnittspreis)
-- **Transaction**: Kauf- oder Verkaufstransaktion
-
-## Aktienkurse
-
-Die Anwendung nutzt die Yahoo Finance API (v8) um aktuelle Aktienkurse abzurufen. Die Kurse werden fur 5 Minuten gecacht, um API-Limits zu vermeiden.
-
-Untersttutzte Symbole:
-- US-Aktien: AAPL, MSFT, GOOGL, AMZN, etc.
-- Deutsche Aktien: SAP.DE, BMW.DE, etc.
-- ETFs: SPY, QQQ, etc.
+| Method | Endpoint        | Description      |
+|--------|-----------------|------------------|
+| GET    | /api/items      | List all items   |
+| POST   | /api/items      | Create an item   |
+| DELETE | /api/items/:id  | Delete an item   |
+| GET    | /health         | Health check     |
