@@ -20,6 +20,13 @@ app.use(express.json());
 
 app.locals.prisma = prisma;
 
+app.get('/api/config', (_req, res) => {
+  res.json({
+    issuer: process.env.OIDC_ISSUER ?? null,
+    clientId: process.env.OIDC_CLIENT_ID ?? null,
+  });
+});
+
 app.use('/api/items', itemRoutes);
 
 app.get('/health', (_req, res) => {

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -7,11 +8,16 @@ function getPrisma(req: Request): PrismaClient {
   return req.app.locals.prisma as PrismaClient;
 }
 
-// GET /api/items - List all items
+router.use(requireAuth);
+
+// GET /api/items - List items for the current user
 router.get('/', async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma(req);
-    const items = await prisma.item.findMany({ orderBy: { createdAt: 'desc' } });
+    const items = await prisma.item.findMany({
+      where: { userId: req.user!.sub },
+      orderBy: { createdAt: 'desc' },
+    });
     res.json(items);
   } catch (error) {
     console.error('Error fetching items:', error);
@@ -19,7 +25,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/items - Create an item
+// POST /api/items - Create an item owned by the current user
 router.post('/', async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma(req);
@@ -27,7 +33,9 @@ router.post('/', async (req: Request, res: Response) => {
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
     }
-    const item = await prisma.item.create({ data: { title } });
+    const item = await prisma.item.create({
+      data: { title, userId: req.user!.sub },
+    });
     res.status(201).json(item);
   } catch (error) {
     console.error('Error creating item:', error);
@@ -35,12 +43,17 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/items/:id - Delete an item
+// DELETE /api/items/:id - Delete an item the current user owns
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma(req);
     const id = req.params.id as string;
-    await prisma.item.delete({ where: { id } });
+    const result = await prisma.item.deleteMany({
+      where: { id, userId: req.user!.sub },
+    });
+    if (result.count === 0) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
     res.json({ message: 'Item deleted' });
   } catch (error) {
     console.error('Error deleting item:', error);

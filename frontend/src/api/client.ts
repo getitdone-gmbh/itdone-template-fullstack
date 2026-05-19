@@ -11,11 +11,18 @@ function getApiBase(): string {
 
 const API_BASE = getApiBase();
 
-async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    ...options,
-  });
+async function request<T>(
+  endpoint: string,
+  token: string | undefined,
+  options?: RequestInit,
+): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(error.error || 'Request failed');
@@ -26,12 +33,28 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 export interface Item {
   id: string;
   title: string;
+  userId: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export const api = {
-  getItems: () => request<Item[]>('/items'),
-  createItem: (title: string) => request<Item>('/items', { method: 'POST', body: JSON.stringify({ title }) }),
-  deleteItem: (id: string) => request<{ message: string }>(`/items/${id}`, { method: 'DELETE' }),
-};
+export interface AppConfig {
+  issuer: string | null;
+  clientId: string | null;
+}
+
+export async function fetchAppConfig(): Promise<AppConfig> {
+  const response = await fetch(`${API_BASE}/config`);
+  if (!response.ok) throw new Error('Failed to load app config');
+  return response.json();
+}
+
+export function createApi(token: string | undefined) {
+  return {
+    getItems: () => request<Item[]>('/items', token),
+    createItem: (title: string) =>
+      request<Item>('/items', token, { method: 'POST', body: JSON.stringify({ title }) }),
+    deleteItem: (id: string) =>
+      request<{ message: string }>(`/items/${id}`, token, { method: 'DELETE' }),
+  };
+}
