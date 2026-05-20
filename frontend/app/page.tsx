@@ -1,50 +1,49 @@
-import { useMemo, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useAuth } from 'react-oidc-context'
-import { createApi } from './api/client'
+'use client';
 
-function App() {
-  const auth = useAuth()
-  const queryClient = useQueryClient()
-  const [title, setTitle] = useState('')
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from 'react-oidc-context';
+import { createApi } from '@/lib/api';
 
-  const api = useMemo(
-    () => createApi(auth.user?.access_token),
-    [auth.user?.access_token],
-  )
+export default function Page() {
+  const auth = useAuth();
+  const queryClient = useQueryClient();
+  const [title, setTitle] = useState('');
+
+  const api = useMemo(() => createApi(auth.user?.access_token), [auth.user?.access_token]);
 
   const { data: items, isLoading } = useQuery({
     queryKey: ['items', auth.user?.profile.sub],
     queryFn: api.getItems,
     enabled: auth.isAuthenticated,
-  })
+  });
 
   const createMutation = useMutation({
     mutationFn: api.createItem,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] })
-      setTitle('')
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      setTitle('');
     },
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: api.deleteItem,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] })
+      queryClient.invalidateQueries({ queryKey: ['items'] });
     },
-  })
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (title.trim()) createMutation.mutate(title.trim())
-  }
+    e.preventDefault();
+    if (title.trim()) createMutation.mutate(title.trim());
+  };
 
   if (auth.isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-gray-500">Loading…</p>
       </div>
-    )
+    );
   }
 
   if (auth.error) {
@@ -60,7 +59,7 @@ function App() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   if (!auth.isAuthenticated) {
@@ -77,14 +76,14 @@ function App() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   const displayName =
     (auth.user?.profile.name as string | undefined) ??
     (auth.user?.profile.email as string | undefined) ??
     auth.user?.profile.sub ??
-    'User'
+    'User';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -128,7 +127,10 @@ function App() {
         ) : (
           <ul className="space-y-2">
             {items?.map((item) => (
-              <li key={item.id} className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm">
+              <li
+                key={item.id}
+                className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm"
+              >
                 <span className="text-gray-900">{item.title}</span>
                 <button
                   onClick={() => deleteMutation.mutate(item.id)}
@@ -142,7 +144,5 @@ function App() {
         )}
       </main>
     </div>
-  )
+  );
 }
-
-export default App

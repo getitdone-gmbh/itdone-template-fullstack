@@ -20,7 +20,7 @@ addons:
     attachTo:
       - backend
   auth:                                                                                                                                
-    type: zitadel                                                                                                                      
+    type: keycloak                                                                                                                      
     oidcType: spa                                                                            
     attachTo:                                                                                                                          
       - frontend                                                                                                                       

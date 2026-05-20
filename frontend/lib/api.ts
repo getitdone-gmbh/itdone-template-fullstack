@@ -1,6 +1,6 @@
 function getApiBase(): string {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
   }
   if (typeof window !== 'undefined' && window.location.hostname.includes('frontend')) {
     const backendHost = window.location.hostname.replace('frontend', 'backend');
@@ -8,8 +8,6 @@ function getApiBase(): string {
   }
   return '/api';
 }
-
-const API_BASE = getApiBase();
 
 async function request<T>(
   endpoint: string,
@@ -22,7 +20,7 @@ async function request<T>(
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+  const response = await fetch(`${getApiBase()}${endpoint}`, { ...options, headers });
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(error.error || 'Request failed');
@@ -44,7 +42,7 @@ export interface AppConfig {
 }
 
 export async function fetchAppConfig(): Promise<AppConfig> {
-  const response = await fetch(`${API_BASE}/config`);
+  const response = await fetch(`${getApiBase()}/config`);
   if (!response.ok) throw new Error('Failed to load app config');
   return response.json();
 }
