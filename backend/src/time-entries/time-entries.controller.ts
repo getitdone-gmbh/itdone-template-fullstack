@@ -92,6 +92,20 @@ export class TimeEntriesController {
     return this.timeEntries.stopActiveTimer(req.user.sub);
   }
 
+  @Post('manual')
+  createManualEntry(
+    @Req() req: Request & { user: AuthUser },
+    @Body() body: { date: string; projectId?: string; taskId?: string; hours: number; description?: string },
+  ) {
+    return this.timeEntries.createManualEntry(req.user.sub, {
+      date: new Date(body.date),
+      projectId: body.projectId,
+      taskId: body.taskId,
+      hours: body.hours,
+      description: body.description,
+    });
+  }
+
   @Put(':id')
   update(
     @Req() req: Request & { user: AuthUser },
