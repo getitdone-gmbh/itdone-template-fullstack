@@ -2,15 +2,14 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 export interface CreateTimeEntryDto {
   projectId?: string;
   taskId?: string;
-  startTime?: string | Date;
-  endTime?: string | Date;
+  startTime: Date;
+  endTime?: Date;
   duration?: number;
   description?: string;
 }
@@ -18,149 +17,94 @@ export interface CreateTimeEntryDto {
 export interface UpdateTimeEntryDto {
   projectId?: string;
   taskId?: string;
-  startTime?: string | Date;
-  endTime?: string | Date;
+  startTime?: Date;
+  endTime?: Date;
   duration?: number;
   description?: string;
-}
-
-export interface TimeEntryFilter {
-  projectId?: string;
-  taskId?: string;
-  startDate?: string;
-  endDate?: string;
-}
-
-export interface TimeSummary {
-  totalHours: number;
-  entriesCount: number;
-  byProject: Array<{
-    projectId: string;
-    projectName: string;
-    totalHours: number;
-    entriesCount: number;
-  }>;
-  byDate: Array<{
-    date: string;
-    totalHours: number;
-  }>;
 }
 
 @Injectable()
 export class TimeEntriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(userId: string, filter: TimeEntryFilter = {}) {
-    const where: Record<string, any> = { userId };
+  async findAll(userId: string, filters?: {
+    projectId?: string;
+    taskId?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }) {
+    const where: any = { userId };
 
-    if (filter.projectId) {
-      where.projectId = filter.projectId;
+    if (filters?.projectId) {
+      where.projectId = filters.projectId;
     }
 
-    if (filter.taskId) {
-      where.taskId = filter.taskId;
+    if (filters?.taskId) {
+      where.taskId = filters.taskId;
     }
 
-    if (filter.startDate || filter.endDate) {
+    if (filters?.startDate || filters?.endDate) {
       where.startTime = {};
-      if (filter.startDate) {
-        where.startTime.gte = new Date(filter.startDate);
+      if (filters?.startDate) {
+        where.startTime.gte = filters.startDate;
       }
-      if (filter.endDate) {
-        where.startTime.lte = new Date(filter.endDate);
+      if (filters?.endDate) {
+        where.startTime.lte = filters.endDate;
       }
     }
 
     return this.prisma.timeEntry.findMany({
       where,
+      include: {
+        project: true,
+        task: true,
+      },
       orderBy: { startTime: 'desc' },
-      include: {
-        project: { select: { id: true, name: true } },
-        task: { select: { id: true, name: true } },
-      },
     });
   }
 
-  async getActiveTimer(userId: string) {
-    const activeEntry = await this.prisma.timeEntry.findFirst({
-      where: {
-        userId,
-        endTime: null,
-      },
-      include: {
-        project: { select: { id: true, name: true } },
-        task: { select: { id: true, name: true } },
-      },
-    });
-
-    if (!activeEntry) {
-      return null;
-    }
-
-    // Calculate current duration
-    const startTime = new Date(activeEntry.startTime);
-    const now = new Date();
-    const duration = (now.getTime() - startTime.getTime()) / 1000 / 60; // in minutes
-
-    return {
-      ...activeEntry,
-      duration,
-      startTime: activeEntry.startTime.toISOString(),
-    };
-  }
-
-  async getById(userId: string, id: string) {
+  async findOne(userId: string, id: string) {
     const entry = await this.prisma.timeEntry.findUnique({
-      where: { id, userId },
+      where: { id },
       include: {
-        project: { select: { id: true, name: true } },
-        task: { select: { id: true, name: true } },
+        project: true,
+        task: true,
       },
     });
 
-    if (!entry) {
+    if (!entry || entry.userId !== userId) {
       throw new NotFoundException('Time entry not found');
     }
 
     return entry;
   }
 
-  async create(userId: string, dto: CreateTimeEntryDto) {
-    // Check if there's already an active timer
-    const activeEntry = await this.prisma.timeEntry.findFirst({
-      where: { userId, endTime: null },
-    });
-
-    if (activeEntry && !dto.endTime) {
-      throw new ConflictException(
-        'Cannot start a new timer while another one is running. Stop the active timer first.',
-      );
+  async create(userId: string, createDto: CreateTimeEntryDto) {
+    // Validate that if endTime is provided, it's after startTime
+    if (createDto.endTime && createDto.startTime >= createDto.endTime) {
+      throw new BadRequestException('endTime must be after startTime');
     }
 
-    const startTime = dto.startTime ? new Date(dto.startTime) : new Date();
-    const endTime = dto.endTime ? new Date(dto.endTime) : null;
-
-    // Calculate duration if both start and end times are provided
-    let duration = dto.duration;
-    if (dto.startTime && dto.endTime && !dto.duration) {
-      const start = new Date(dto.startTime);
-      const end = new Date(dto.endTime);
-      duration = (end.getTime() - start.getTime()) / 1000 / 60; // in minutes
+    // Calculate duration if not provided
+    let duration = createDto.duration;
+    if (!duration && createDto.endTime) {
+      duration = 
+        (createDto.endTime.getTime() - createDto.startTime.getTime()) / 1000 / 60 / 60;
     }
 
     return this.prisma.timeEntry.create({
       data: {
         userId,
-        projectId: dto.projectId,
-        taskId: dto.taskId,
-        startTime,
-        endTime,
+        projectId: createDto.projectId,
+        taskId: createDto.taskId,
+        startTime: createDto.startTime,
+        endTime: createDto.endTime,
         duration,
-        description: dto.description,
+        description: createDto.description,
       },
       include: {
-        project: { select: { id: true, name: true } },
-        task: { select: { id: true, name: true } },
+        project: true,
+        task: true,
       },
     });
   }
@@ -168,46 +112,46 @@ export class TimeEntriesService {
   async update(
     userId: string,
     id: string,
-    dto: UpdateTimeEntryDto,
+    updateDto: UpdateTimeEntryDto,
   ) {
-    const existing = await this.prisma.timeEntry.findUnique({
-      where: { id, userId },
-    });
+    const existing = await this.prisma.timeEntry.findUnique({ where: { id } });
 
-    if (!existing) {
+    if (!existing || existing.userId !== userId) {
       throw new NotFoundException('Time entry not found');
     }
 
-    // Calculate duration if times are updated
-    let duration = dto.duration;
-    if (dto.startTime && dto.endTime && !dto.duration) {
-      const start = new Date(dto.startTime);
-      const end = new Date(dto.endTime);
-      duration = (end.getTime() - start.getTime()) / 1000 / 60;
-    } else if (dto.startTime && !dto.endTime) {
-      // If start time is updated but end time is not, and no duration provided
-      // This means the timer is still running, don't calculate duration
-      duration = undefined;
+    // Validate that if endTime is provided, it's after startTime
+    const startTime = updateDto.startTime || existing.startTime;
+    const endTime = updateDto.endTime || existing.endTime;
+    
+    if (endTime && startTime >= endTime) {
+      throw new BadRequestException('endTime must be after startTime');
+    }
+
+    // Calculate duration if not provided but endTime is provided
+    let duration = updateDto.duration;
+    if (!duration && endTime) {
+      duration = (endTime.getTime() - startTime.getTime()) / 1000 / 60 / 60;
     }
 
     return this.prisma.timeEntry.update({
-      where: { id, userId },
+      where: { id },
       data: {
-        projectId: dto.projectId,
-        taskId: dto.taskId,
-        startTime: dto.startTime ? new Date(dto.startTime) : undefined,
-        endTime: dto.endTime ? new Date(dto.endTime) : undefined,
+        projectId: updateDto.projectId,
+        taskId: updateDto.taskId,
+        startTime,
+        endTime,
         duration,
-        description: dto.description,
+        description: updateDto.description,
       },
       include: {
-        project: { select: { id: true, name: true } },
-        task: { select: { id: true, name: true } },
+        project: true,
+        task: true,
       },
     });
   }
 
-  async delete(userId: string, id: string) {
+  async remove(userId: string, id: string) {
     const result = await this.prisma.timeEntry.deleteMany({
       where: { id, userId },
     });
@@ -219,129 +163,66 @@ export class TimeEntriesService {
     return { message: 'Time entry deleted' };
   }
 
-  async stopActiveTimer(userId: string): Promise<any> {
-    const activeEntry = await this.prisma.timeEntry.findFirst({
-      where: { userId, endTime: null },
-    });
-
-    if (!activeEntry) {
-      throw new NotFoundException('No active timer found');
-    }
-
-    const now = new Date();
-    const startTime = new Date(activeEntry.startTime);
-    const duration = (now.getTime() - startTime.getTime()) / 1000 / 60; // in minutes
-
-    return this.prisma.timeEntry.update({
-      where: { id: activeEntry.id, userId },
-      data: {
-        endTime: now,
-        duration,
+  async getActiveTimer(userId: string) {
+    return this.prisma.timeEntry.findFirst({
+      where: {
+        userId,
+        endTime: null,
       },
       include: {
-        project: { select: { id: true, name: true } },
-        task: { select: { id: true, name: true } },
+        project: true,
+        task: true,
       },
     });
   }
 
-  async getTimeSummary(
-    userId: string,
-    filter: { projectId?: string; startDate?: string; endDate?: string } = {},
-  ): Promise<TimeSummary> {
-    const where: Record<string, any> = { userId };
+  async getTimeEntriesByDate(userId: string, date: Date) {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
 
-    if (filter.projectId) {
-      where.projectId = filter.projectId;
-    }
-
-    if (filter.startDate || filter.endDate) {
-      where.startTime = {};
-      if (filter.startDate) {
-        where.startTime.gte = new Date(filter.startDate);
-      }
-      if (filter.endDate) {
-        where.startTime.lte = new Date(filter.endDate);
-      }
-    }
-
-    // Get all entries
-    const entries = await this.prisma.timeEntry.findMany({
-      where,
-      include: {
-        project: { select: { id: true, name: true } },
+    return this.prisma.timeEntry.findMany({
+      where: {
+        userId,
+        startTime: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
       },
+      include: {
+        project: true,
+        task: true,
+      },
+      orderBy: { startTime: 'asc' },
     });
+  }
 
-    // Calculate total hours
-    const totalHours = entries.reduce((sum, entry) => {
-      const duration = entry.duration || 0;
-      // If entry is still running, calculate duration from start time
-      if (!entry.endTime && entry.startTime) {
-        const start = new Date(entry.startTime);
-        const now = new Date();
-        return sum + (now.getTime() - start.getTime()) / 1000 / 60 / 60; // in hours
-      }
-      return sum + duration / 60; // Convert minutes to hours
-    }, 0);
-
-    // Group by project
-    const byProjectMap = new Map<string, { projectName: string; totalHours: number; entriesCount: number }>();
-    entries.forEach((entry) => {
-      const projectId = entry.projectId || 'uncategorized';
-      const projectName = entry.project?.name || 'Uncategorized';
-      
-      let duration = entry.duration || 0;
-      if (!entry.endTime && entry.startTime) {
-        const start = new Date(entry.startTime);
-        const now = new Date();
-        duration = (now.getTime() - start.getTime()) / 1000 / 60; // in minutes
-      }
-      
-      const hours = duration / 60;
-      
-      if (!byProjectMap.has(projectId)) {
-        byProjectMap.set(projectId, { projectName, totalHours: 0, entriesCount: 0 });
-      }
-      
-      const projectData = byProjectMap.get(projectId)!;
-      projectData.totalHours += hours;
-      projectData.entriesCount += 1;
+  async getTimeEntriesByProject(userId: string, projectId: string) {
+    return this.prisma.timeEntry.findMany({
+      where: {
+        userId,
+        projectId,
+      },
+      include: {
+        project: true,
+        task: true,
+      },
+      orderBy: { startTime: 'desc' },
     });
+  }
 
-    const byProject = Array.from(byProjectMap.values()).map((data) => ({
-      projectId: data.projectName === 'Uncategorized' ? 'uncategorized' : data.projectName,
-      projectName: data.projectName,
-      totalHours: data.totalHours,
-      entriesCount: data.entriesCount,
-    }));
-
-    // Group by date
-    const byDateMap = new Map<string, number>();
-    entries.forEach((entry) => {
-      const date = new Date(entry.startTime).toISOString().split('T')[0];
-      
-      let duration = entry.duration || 0;
-      if (!entry.endTime && entry.startTime) {
-        const start = new Date(entry.startTime);
-        const now = new Date();
-        duration = (now.getTime() - start.getTime()) / 1000 / 60; // in minutes
-      }
-      
-      const hours = duration / 60;
-      byDateMap.set(date, (byDateMap.get(date) || 0) + hours);
+  async getTimeEntriesByTask(userId: string, taskId: string) {
+    return this.prisma.timeEntry.findMany({
+      where: {
+        userId,
+        taskId,
+      },
+      include: {
+        project: true,
+        task: true,
+      },
+      orderBy: { startTime: 'desc' },
     });
-
-    const byDate = Array.from(byDateMap.entries()).map(([date, totalHours]) => ({
-      date,
-      totalHours,
-    }));
-
-    return {
-      totalHours,
-      entriesCount: entries.length,
-      byProject,
-      byDate,
-    };
   }
 }
