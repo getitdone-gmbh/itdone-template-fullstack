@@ -22,7 +22,7 @@ export class ProjectsController {
 
   @Get()
   list(@Req() req: Request & { user: AuthUser }) {
-    return this.projects.list(req.user.sub);
+    return this.projects.findAll(req.user.sub);
   }
 
   @Get(':id')
