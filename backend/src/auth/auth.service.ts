@@ -2,7 +2,6 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
-  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -18,13 +17,12 @@ export interface JwtPayload {
 
 export interface AuthTokens {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 export interface RegisterDto {
   email: string;
   password: string;
-  passwordConfirmation: string;
   name?: string;
 }
 
@@ -44,12 +42,12 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      return null;
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      return null;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -58,24 +56,16 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto): Promise<AuthTokens> {
-    if (registerDto.password !== registerDto.passwordConfirmation) {
-      throw new BadRequestException('Passwords do not match');
-    }
-
     const existingUser = await this.usersService.findByEmail(registerDto.email);
     if (existingUser) {
-      throw new ConflictException('Email already in use');
+      throw new ConflictException('User with this email already exists');
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-
-    const user = await this.prisma.user.create({
-      data: {
-        email: registerDto.email,
-        passwordHash: hashedPassword,
-        name: registerDto.name,
-        role: 'USER',
-      },
+    const user = await this.usersService.create({
+      email: registerDto.email,
+      passwordHash: hashedPassword,
+      name: registerDto.name,
     });
 
     return this.generateTokens(user);
@@ -83,24 +73,20 @@ export class AuthService {
 
   async login(loginDto: LoginDto): Promise<AuthTokens> {
     const user = await this.validateUser(loginDto.email, loginDto.password);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
     return this.generateTokens(user);
   }
 
-  async refreshTokens(refreshToken: string): Promise<AuthTokens> {
-    try {
-      const payload = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_SECRET || 'your-secret-key',
-      }) as JwtPayload;
-
-      const user = await this.usersService.findById(payload.sub);
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
-
-      return this.generateTokens(user);
-    } catch (error) {
-      throw new UnauthorizedException('Invalid refresh token');
+  async refreshTokens(userId: string): Promise<AuthTokens> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
     }
+
+    return this.generateTokens(user);
   }
 
   private generateTokens(user: {
@@ -116,20 +102,8 @@ export class AuthService {
       role: user.role,
     };
 
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '30d' });
-
     return {
-      accessToken,
-      refreshToken,
+      accessToken: this.jwtService.sign(payload),
     };
-  }
-
-  async validateJwtPayload(payload: JwtPayload): Promise<any> {
-    const user = await this.usersService.findById(payload.sub);
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-    return user;
   }
 }
