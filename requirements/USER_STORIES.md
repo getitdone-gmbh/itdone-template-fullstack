@@ -18,16 +18,16 @@ Als Teammitglied möchte ich mich registrieren und anmelden können, damit ich m
 - [x] Validierung der Eingaben (z. B. E-Mail-Format, Passwortstärke)
 - [x] Erfolgreiche Anmeldung führt zur Teamübersicht
 
-#### [ ] Zeiterfassung mit Timer
+#### [x] Zeiterfassung mit Timer
 Als Teammitglied möchte ich einen Timer starten und stoppen können, um meine Arbeitszeit automatisch zu erfassen.
 
 **Acceptance Criteria:**
-- [ ] Start- und Stop-Button für den Timer
-- [ ] Anzeige der aktuellen Laufzeit
-- [ ] Timer kann pausiert und fortgesetzt werden
-- [ ] Timer-Einträge werden automatisch mit dem aktuellen Projekt/Task verknüpft
-- [ ] Timer-Einträge können manuell bearbeitet oder gelöscht werden
-- [ ] Timer-Einträge werden in der Zeitübersicht angezeigt
+- [x] Start- und Stop-Button für den Timer
+- [x] Anzeige der aktuellen Laufzeit
+- [x] Timer kann pausiert und fortgesetzt werden
+- [x] Timer-Einträge werden automatisch mit dem aktuellen Projekt/Task verknüpft
+- [x] Timer-Einträge können manuell bearbeitet oder gelöscht werden
+- [x] Timer-Einträge werden in der Zeitübersicht angezeigt
 
 #### [ ] Manuelle Zeiteinträge
 Als Teammitglied möchte ich manuelle Zeiteinträge hinzufügen, bearbeiten und löschen können, um auch nicht automatisierte Zeiten zu erfassen.
