@@ -15,16 +15,13 @@ export interface UpdateProjectDto {
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(userId: string) {
+  async findAll(userId: string) {
     return this.prisma.project.findMany({
       where: { userId },
       include: {
         tasks: true,
-        timeEntries: {
-          where: { userId },
-        },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -33,9 +30,6 @@ export class ProjectsService {
       where: { id },
       include: {
         tasks: true,
-        timeEntries: {
-          where: { userId },
-        },
       },
     });
 
@@ -63,11 +57,7 @@ export class ProjectsService {
     });
   }
 
-  async update(
-    userId: string,
-    id: string,
-    updateDto: UpdateProjectDto,
-  ) {
+  async update(userId: string, id: string, updateDto: UpdateProjectDto) {
     const existing = await this.prisma.project.findUnique({ where: { id } });
 
     if (!existing || existing.userId !== userId) {
