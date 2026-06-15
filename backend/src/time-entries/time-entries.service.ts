@@ -225,4 +225,178 @@ export class TimeEntriesService {
       orderBy: { startTime: 'desc' },
     });
   }
+
+  async getById(userId: string, id: string) {
+    return this.findOne(userId, id);
+  }
+
+  async stopActiveTimer(userId: string) {
+    const activeTimer = await this.getActiveTimer(userId);
+    if (!activeTimer) {
+      throw new NotFoundException('No active timer found');
+    }
+
+    return this.prisma.timeEntry.update({
+      where: { id: activeTimer.id },
+      data: {
+        endTime: new Date(),
+        duration: {
+          increment: 0, // Duration will be recalculated
+        },
+      },
+      include: {
+        project: true,
+        task: true,
+      },
+    });
+  }
+
+  async getTimeSummary(
+    userId: string,
+    filters?: { projectId?: string; startDate?: string; endDate?: string },
+  ) {
+    const where: any = { userId };
+
+    if (filters?.projectId) {
+      where.projectId = filters.projectId;
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+      where.startTime = {};
+      if (filters?.startDate) {
+        where.startTime.gte = new Date(filters.startDate);
+      }
+      if (filters?.endDate) {
+        where.startTime.lte = new Date(filters.endDate);
+      }
+    }
+
+    const entries = await this.prisma.timeEntry.findMany({
+      where,
+      include: {
+        project: true,
+        task: true,
+      },
+    });
+
+    // Calculate summary
+    const totalHours = entries.reduce((sum, entry) => {
+      return sum + (entry.duration || 0);
+    }, 0);
+
+    const byProject: Record<string, { hours: number; entries: number }> = {};
+    const byTask: Record<string, { hours: number; entries: number }> = {};
+    const byDate: Record<string, { hours: number; entries: number }> = {};
+
+    entries.forEach((entry) => {
+      const duration = entry.duration || 0;
+
+      // By project
+      const projectName = entry.project?.name || 'No Project';
+      if (!byProject[projectName]) {
+        byProject[projectName] = { hours: 0, entries: 0 };
+      }
+      byProject[projectName].hours += duration;
+      byProject[projectName].entries += 1;
+
+      // By task
+      const taskName = entry.task?.name || 'No Task';
+      if (!byTask[taskName]) {
+        byTask[taskName] = { hours: 0, entries: 0 };
+      }
+      byTask[taskName].hours += duration;
+      byTask[taskName].entries += 1;
+
+      // By date
+      const date = entry.startTime.toISOString().split('T')[0];
+      if (!byDate[date]) {
+        byDate[date] = { hours: 0, entries: 0 };
+      }
+      byDate[date].hours += duration;
+      byDate[date].entries += 1;
+    });
+
+    return {
+      totalHours,
+      byProject,
+      byTask,
+      byDate,
+      totalEntries: entries.length,
+    };
+  }
+
+  // Manual time entry specific methods
+  async createManualEntry(
+    userId: string,
+    dto: {
+      date: Date;
+      projectId?: string;
+      taskId?: string;
+      hours: number;
+      description?: string;
+    },
+  ) {
+    if (dto.hours <= 0) {
+      throw new BadRequestException('Hours must be positive');
+    }
+
+    const startTime = new Date(dto.date);
+    const endTime = new Date(dto.date);
+    endTime.setHours(startTime.getHours() + dto.hours);
+
+    return this.prisma.timeEntry.create({
+      data: {
+        userId,
+        projectId: dto.projectId,
+        taskId: dto.taskId,
+        startTime,
+        endTime,
+        duration: dto.hours,
+        description: dto.description,
+      },
+      include: {
+        project: true,
+        task: true,
+      },
+    });
+  }
+
+  async list(userId: string, filter: TimeEntryFilter = {}) {
+    const where: any = { userId };
+
+    if (filter.projectId) {
+      where.projectId = filter.projectId;
+    }
+
+    if (filter.taskId) {
+      where.taskId = filter.taskId;
+    }
+
+    if (filter.startDate || filter.endDate) {
+      where.startTime = {};
+      if (filter.startDate) {
+        where.startTime.gte = new Date(filter.startDate);
+      }
+      if (filter.endDate) {
+        where.startTime.lte = new Date(filter.endDate);
+      }
+    }
+
+    return this.prisma.timeEntry.findMany({
+      where,
+      include: {
+        project: true,
+        task: true,
+      },
+      orderBy: { startTime: 'desc' },
+    });
+  }
+}
+
+// Export types for controller
+export interface TimeEntryFilter {
+  projectId?: string;
+  taskId?: string;
+  startDate?: string;
+  endDate?: string;
 }
