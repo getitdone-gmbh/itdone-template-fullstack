@@ -7,16 +7,16 @@
 
 ### Must Have
 
-#### [ ] Benutzerregistrierung und Anmeldung
+#### [x] Benutzerregistrierung und Anmeldung
 Als Teammitglied möchte ich mich registrieren und anmelden können, damit ich meine Zeit erfassen und meine Einträge verwalten kann.
 
 **Acceptance Criteria:**
-- [ ] Registrierungsformular mit E-Mail, Passwort und Bestätigung
-- [ ] Anmeldung mit E-Mail und Passwort
-- [ ] Passwort-Reset-Funktion
-- [ ] Benutzerprofil mit Bearbeitungsmöglichkeit (Name, E-Mail)
-- [ ] Validierung der Eingaben (z. B. E-Mail-Format, Passwortstärke)
-- [ ] Erfolgreiche Anmeldung führt zur Teamübersicht
+- [x] Registrierungsformular mit E-Mail, Passwort und Bestätigung
+- [x] Anmeldung mit E-Mail und Passwort
+- [x] Passwort-Reset-Funktion
+- [x] Benutzerprofil mit Bearbeitungsmöglichkeit (Name, E-Mail)
+- [x] Validierung der Eingaben (z. B. E-Mail-Format, Passwortstärke)
+- [x] Erfolgreiche Anmeldung führt zur Teamübersicht
 
 #### [ ] Zeiterfassung mit Timer
 Als Teammitglied möchte ich einen Timer starten und stoppen können, um meine Arbeitszeit automatisch zu erfassen.
