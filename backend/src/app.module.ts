@@ -5,9 +5,10 @@ import { PrismaService } from './prisma.service';
 import { JwtStrategy } from './auth/jwt.strategy';
 import { ItemsController } from './items/items.controller';
 import { ItemsService } from './items/items.service';
+import { TimeEntriesModule } from './time-entries/time-entries.module';
 
 @Module({
-  imports: [PassportModule],
+  imports: [PassportModule, TimeEntriesModule],
   controllers: [AppController, ItemsController],
   providers: [PrismaService, ItemsService, JwtStrategy],
 })
