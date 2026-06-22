@@ -19,10 +19,18 @@ Do **not** rewrite or delete this file — it is guidance, not a scratchpad
 - **New page:** add `frontend/app/<route>/page.tsx`. Fetch data with React Query; call the backend at the injected API base URL — do not hardcode `localhost`.
 - **A dependency:** run `npm install <pkg>` (via run_command, with the right `cwd` of `backend` or `frontend`). Do NOT hand-edit `package.json` dependencies, and do not commit lockfiles or `node_modules`.
 
-## Auth (Keycloak, already wired)
+## Auth (Keycloak, already wired) — and auth vs. data
 - Frontend uses `react-oidc-context` (configured in `app/providers.tsx`, callback at `app/callback/`).
 - Backend validates the JWT via `@nestjs/passport` (`src/auth/`).
-- **Reuse this** — never roll your own login/session. OIDC + DB credentials arrive as env vars from the attached addons; read them from `process.env`, don't invent or hardcode them.
+- **Authentication is Keycloak's job. NEVER build your own:** no password fields,
+  no `bcrypt`/password hashing, no login/registration/session endpoints, no
+  "users" table for credentials. The current user comes from the validated JWT.
+- **Auth ≠ domain data.** Managing *records* of people (employees, customers,
+  members — "Mitarbeiterverwaltung" etc.) is normal CRUD: model them as plain
+  domain entities with profile fields (name, role, etc.) — **without** passwords
+  or login. Link them to the authenticated Keycloak user by id/email if needed.
+- OIDC + DB credentials arrive as env vars from the attached addons; read them
+  from `process.env`, don't invent or hardcode them.
 
 ## Hard rules
 - The web process MUST listen on `$PORT` (defaults: 3000 / 8080) — don't change the ports in `itdone.yaml`.
