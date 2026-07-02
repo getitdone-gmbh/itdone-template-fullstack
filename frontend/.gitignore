@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+package-lock.json
 
 # Build output
 .next/
@@ -30,3 +31,4 @@ coverage/
 
 # Vite
 *.local
+*.tsbuildinfo

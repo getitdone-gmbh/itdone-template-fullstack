@@ -1,52 +1,34 @@
-# ITdone Fullstack Template
+# ITDone Fullstack Template
 
-Minimal CRUD template for deploying on ITdone Cloud. Uses React + Vite + Tailwind (frontend), Express + Prisma + PostgreSQL (backend), and Zitadel auth via `itdone.yaml`.
+Minimal CRUD reference app for deploying on ITDone Cloud. One resource
+(`Item`), Keycloak auth, deployed via `itdone.yaml`.
 
-## Structure
+- **frontend/** — Next.js 14 (App Router) + React 18 + Tailwind + React Query, port **3000**
+- **backend/** — NestJS 11 + Prisma + PostgreSQL, REST under `/api`, port **8080**
+- **Auth** — Keycloak (OIDC) via `react-oidc-context` on the frontend, JWT validation on the backend
 
-```
-├── itdone.yaml              # ITdone Cloud deployment config (Postgres, Zitadel auth)
-├── frontend/                # React + Vite + Tailwind
-│   ├── src/
-│   │   ├── api/client.ts    # API client with Item interface
-│   │   ├── App.tsx          # Single-page items list
-│   │   └── main.tsx         # Entry point with React Query
-│   └── package.json
-├── backend/                 # Express + Prisma
-│   ├── prisma/schema.prisma # Item model
-│   ├── src/
-│   │   ├── routes/items.ts  # CRUD routes (GET, POST, DELETE)
-│   │   └── index.ts         # Express server setup
-│   └── package.json
-└── README.md
-```
+`AGENTS.md` is the source of truth for conventions — read it before extending the app.
 
-## Setup
-
-### Backend
+## Local dev
 
 ```bash
-cd backend
-npm install
-cp .env.example .env   # edit DATABASE_URL if needed
-npm run db:generate
-npm run db:push
-npm run dev            # starts on port 8080
-```
+# backend (port 8080)
+cd backend && npm install
+cp .env.example .env      # set DATABASE_URL + OIDC_ISSUER / OIDC_CLIENT_ID
+npm run db:generate && npm run db:push && npm run dev
 
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev            # starts on port 3000
+# frontend (port 3000)
+cd frontend && npm install && npm run dev
 ```
 
 ## API
 
-| Method | Endpoint        | Description      |
-|--------|-----------------|------------------|
-| GET    | /api/items      | List all items   |
-| POST   | /api/items      | Create an item   |
-| DELETE | /api/items/:id  | Delete an item   |
-| GET    | /health         | Health check     |
+| Method | Endpoint         | Description     |
+|--------|------------------|-----------------|
+| GET    | /api/items       | List your items |
+| POST   | /api/items       | Create an item  |
+| DELETE | /api/items/:id   | Delete an item  |
+| GET    | /api/config      | Public OIDC config |
+| GET    | /health          | Health check    |
+
+All `/api/items` routes require a valid Keycloak bearer token.

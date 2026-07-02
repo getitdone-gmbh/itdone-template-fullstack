@@ -7,96 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash String
-  name          String?
-  role          Role      @default(USER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  items         Item[]
-  timeEntries   TimeEntry[]
-  projects      Project[]
-
-  @@index([email])
-}
-
-model PasswordResetToken {
-  id        String    @id @default(cuid())
-  token     String    @unique
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime  @default(now())
-
-  @@index([userId])
-  @@index([token])
-}
-
+// The only model in this reference template. `userId` is the authenticated
+// Keycloak subject (JWT `sub`) — a plain string, not a foreign key. Auth is
+// Keycloak's job, so there is no local User table. Copy this model's shape to
+// add your own resources.
 model Item {
   id        String   @id @default(cuid())
   title     String
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
-}
-
-model Project {
-  id          String    @id @default(cuid())
-  name        String
-  description String?
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  tasks       Task[]
-  timeEntries TimeEntry[]
-
-  @@index([userId])
-}
-
-model Task {
-  id          String    @id @default(cuid())
-  name        String
-  description String?
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  timeEntries TimeEntry[]
-
-  @@index([projectId])
-}
-
-model TimeEntry {
-  id          String    @id @default(cuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projectId   String?
-  project     Project?  @relation(fields: [projectId], references: [id])
-  taskId      String?
-  task        Task?     @relation(fields: [taskId], references: [id])
-  startTime   DateTime
-  endTime     DateTime?
-  duration    Float?    @default(0)
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([userId])
-  @@index([projectId])
-  @@index([taskId])
-  @@index([startTime])
-}
-
-enum Role {
-  USER
-  ADMIN
 }
